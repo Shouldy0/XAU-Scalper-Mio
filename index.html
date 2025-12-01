@@ -40,7 +40,7 @@
     });
     const candleSeries = chart.addCandlestickSeries();
 
-    const socket = io(); // Si connette automaticamente al backend
+    const socket = io();
 
     let autoMode = false;
 
@@ -48,9 +48,10 @@
       document.getElementById('price').innerText = `XAUUSD: ${data.bid.toFixed(2)}`;
       candleSeries.update(data);
       
-      // Segnale scalping: RSI oversold/overbought + EMA crossover
-      if(autoMode && data.rsi < 30 && data.emaFast > data.emaSlow) trade('buy');
-      if(autoMode && data.rsi > 70 && data.emaFast < data.emaSlow) trade('sell');
+      if(autoMode) {
+        if (data.rsi < 30 && data.emaFast > data.emaSlow) trade('buy');
+        if (data.rsi > 70 && data.emaFast < data.emaSlow) trade('sell');
+      }
     });
 
     socket.on('connect', () => {
@@ -58,12 +59,18 @@
       document.getElementById('status').style.color = "#0f0";
     });
 
+    socket.on('status', (msg) => {
+      document.getElementById('status').innerHTML = msg;
+    });
+
     function trade(side) {
       fetch('/api/trade', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ symbol: 'XAUUSD', side, volume: 0.10 })
-      }).then(res => res.json()).then(data => alert(data.success ? 'Trade eseguito!' : 'Errore: ' + data.error));
+      }).then(res => res.json()).then(data => {
+        alert(data.success ? 'Trade OK: ' + data.message : 'Errore: ' + data.error);
+      });
     }
 
     function toggleAuto() {
